@@ -21,17 +21,14 @@ const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app);
 
 async function addImage(walletAddress, imageFile) {
-  // 1. Upload the image to Firebase Storage
   const storageRef = storage.ref();
   const imageRef = storageRef.child(
     `images/${walletAddress}/${imageFile.name}`
   );
   await imageRef.put(imageFile);
 
-  // 2. Get the URL of the uploaded image
   const imageUrl = await imageRef.getDownloadURL();
 
-  // 3. Create a new document in the user's "images" sub-collection
   const imageDoc = {
     timestamp: firebase.firestore.FieldValue.serverTimestamp(),
     imageUrl,
