@@ -20,21 +20,4 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 // const analytics = getAnalytics(app);
 
-async function addImage(walletAddress, imageFile) {
-  const storageRef = storage.ref();
-  const imageRef = storageRef.child(
-    `images/${walletAddress}/${imageFile.name}`
-  );
-  await imageRef.put(imageFile);
-
-  const imageUrl = await imageRef.getDownloadURL();
-
-  const imageDoc = {
-    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-    imageUrl,
-  };
-  const userRef = db.collection("users").doc(walletAddress);
-  await userRef.collection("images").add(imageDoc);
-}
-
 export default app;

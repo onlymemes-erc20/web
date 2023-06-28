@@ -33,11 +33,14 @@ export default async function Auth(data) {
   const isAuthenticated = await checkBalance(recoveredAddress, threshold);
   if (isAuthenticated) {
     try {
-      const token = sign({ walletAddress }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
+      // const token = sign({ walletAddress }, process.env.JWT_SECRET, {
+      //   expiresIn: "7d",
+      // });
       const firebaseToken = await admin.auth().createCustomToken(walletAddress);
-      return await SetCookie(token, walletAddress);
+      return new Response(JSON.stringify({ token: firebaseToken }), {
+        status: 200,
+      });
+      // return await SetCookie(firebaseToken, wawlletAddress);
     } catch (error) {
       throw new Error(error);
     }

@@ -2,153 +2,93 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
+
 import connectWallet from "@/utils/web3/connectWallet";
 import sliceAddress from "@/utils/web3/sliceAddress";
-import SignMessage from "@/utils/web3/signMessage";
+import authenticateUser from "@/utils/authenticateUser";
+import app from "@/utils/firebase";
+
 import Tooltip from "./base/tooltip";
-import firebase from "firebase/app";
-import { parse } from "cookie";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
-import app from "../utils/firebase";
+import Upload from "./upload";
 
 const Login = () => {
-  const [isBalanceSufficient, setIsBalanceSufficient] = useState<
-    boolean | undefined
-  >(undefined);
   const [walletAddress, setWalletAddress] = useState<string | undefined>(
     undefined
   );
   const [shortAddress, setShortAddress] = useState<string | undefined>(
     undefined
   );
-  const [isRedirected, setIsRedirected] = useState<boolean | undefined>(
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | undefined>(undefined);
+  const [loadingMessage, setLoadingMessage] = useState<string | undefined>(
     undefined
   );
+  const auth = getAuth(app);
 
-  const router = useRouter();
+  const checkWallet = useCallback(
+    async (autoConnect = false, authenticate = true) => {
+      const walletAddress = await connectWallet(autoConnect);
+      if (walletAddress) {
+        const newShortAddress = sliceAddress(walletAddress);
+        setWalletAddress(walletAddress);
+        setShortAddress(newShortAddress);
 
-  const checkWallet = useCallback(async (autoConnect = false) => {
-    const walletAddress = await connectWallet(autoConnect);
-    if (walletAddress) {
-      setWalletAddress(walletAddress);
-      setShortAddress(sliceAddress(walletAddress));
-    }
+        if (authenticate) {
+          authenticateUser(walletAddress, setLoadingMessage);
+        }
+        setLoadingMessage(`Welcome, ${newShortAddress}`);
+      }
+    },
+    []
+  );
+
+  const logout = useCallback(async () => {
+    signOut(auth)
+      .then(() => {
+        setWalletAddress(undefined);
+        setShortAddress(undefined);
+        localStorage.setItem("loggedOut", "true");
+        setIsLoggedIn(false);
+        setLoadingMessage(undefined);
+      })
+      .catch((error) => {
+        console.error("Logout error:", error);
+      });
   }, []);
 
-  const authUser = useCallback(async () => {
-    if (walletAddress) {
-      const response = await fetch("/api/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "Page Load",
-          cookiename: walletAddress,
-        }),
-      });
-      if (response.ok) {
-        const data = await response.json(); //@todo fix this response (cookies?)
-        const firebaseToken = data.token; // assuming the response includes the token
-
-        // Initialize Firebase auth
-        const auth = getAuth(app);
-
-        signInWithCustomToken(auth, firebaseToken)
-          .then((userCredential) => {
-            // Firebase auth successful
-            setIsBalanceSufficient(true);
-            localStorage.removeItem("loggedOut");
-          })
-          .catch((error) => {
-            // Handle Firebase auth error here
-            console.error("Firebase auth error:", error);
-          });
-      } else {
-        const result = await SignMessage(walletAddress);
-        if (result) {
-          const { signedMessage, nonce } = result;
-          const response = await fetch("/api/auth", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              walletAddress,
-              signedMessage,
-              nonce,
-              action: "Login",
-            }),
-          });
-          const setCookieHeader = response.headers.get("Set-Cookie"); //@todo fix this response (cookies?)
-          if (setCookieHeader) {
-            const cookies = parse(setCookieHeader);
-            const firebaseToken = cookies.firebaseToken;
-
-            const auth = getAuth(app);
-
-            signInWithCustomToken(auth, firebaseToken)
-              .then((userCredential) => {
-                // Firebase auth successful
-                setIsBalanceSufficient(true);
-                localStorage.removeItem("loggedOut");
-              })
-              .catch((error) => {
-                // Handle Firebase auth error here
-                console.error("Firebase auth error:", error);
-              });
-          } else {
-            // Handle the case when the cookie header is null
-            console.error("Set-Cookie header is missing.");
-          }
-        }
-      }
-    }
-  }, [walletAddress]);
-
-  //this doesn't disconnect the wallet but it simulates it (and triggers a sign request on connect)
-  const logout = useCallback(async () => {
-    const response = await fetch("/api/auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "Logout", cookiename: walletAddress }),
-    });
-    if (response.ok) {
-      setWalletAddress(undefined);
-      setShortAddress(undefined);
-      setIsBalanceSufficient(undefined);
-      localStorage.setItem("loggedOut", "true");
-    }
-  }, [walletAddress]);
-
-  //if user has not logged out previously, we autoconnect
   useEffect(() => {
-    const hasLoggedOut: string | null = localStorage.getItem("loggedOut");
-    if (hasLoggedOut === "false") {
-      checkWallet(true);
-    }
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        localStorage.removeItem("loggedOut");
+        checkWallet(true, false);
+        setLoadingMessage(`Welcome, ${shortAddress}`);
+        setIsLoggedIn(true);
+      } else {
+        console.log("not logged in");
+      }
+    });
+    return () => unsubscribe();
   }, [checkWallet]);
 
-  // Check the wallet balance and authenticate when wallet address changes
-  useEffect(() => {
-    authUser();
-  }, [walletAddress, authUser]);
+  // useEffect(() => {
+  //   const handleRouteChange = () => {
+  //     setIsRedirected(true);
+  //   };
 
-  useEffect(() => {
-    const handleRouteChange = () => {
-      setIsRedirected(true);
-    };
-
-    if (isBalanceSufficient) {
-      //   router.push("/dashboard/");
-      console.log(router);
-      //this needs pathname == dashboard (but really doesnt that change before it all loads)
-      // suspense maybe?
-      // router.events.on("routeChangeComplete", handleRouteChange);
-    }
-    return () => {
-      // router..off("routeChangeComplete", handleRouteChange);
-    };
-  }, [isBalanceSufficient]);
+  //     //   router.push("/dashboard/");
+  //     console.log(router);
+  //     //this needs pathname == dashboard (but really doesnt that change before it all loads)
+  //     // suspense maybe?
+  //     // router.events.on("routeChangeComplete", handleRouteChange);
+  //   }
+  //   return () => {
+  //     // router..off("routeChangeComplete", handleRouteChange);
+  //   };
+  // }, [router]);
 
   return (
-    <div className="flex w-full h-100">
+    <div className="flex w-full h-100 items-center">
       <Tooltip tooltip={walletAddress ? "Logout" : "Connect"}>
         <button
           className="rounded bg-blue-400 px-4 py-2 text-sm text-white shadow-sm"
@@ -156,15 +96,8 @@ const Login = () => {
           {walletAddress ? shortAddress : "Connect"}
         </button>
       </Tooltip>
-      {isBalanceSufficient === true ? (
-        isRedirected === true ? (
-          <h1> Welcome to OnlyMemes</h1>
-        ) : (
-          <h1>Welcome, {shortAddress}</h1>
-        )
-      ) : isBalanceSufficient === false ? (
-        <h1>Balance Insufficient.</h1>
-      ) : null}
+      {loadingMessage && <p className="text-blue-600">{loadingMessage}</p>}
+      {isLoggedIn && <Upload walletAddress={walletAddress} />}
     </div>
   );
 };

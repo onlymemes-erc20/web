@@ -27,7 +27,6 @@ export async function SetCookie(cookie, cookiename) {
       sameSite: "lax",
       path: "/",
     });
-    console.log(cookie_set);
     return new Response("Cookie Set", {
       status: 200,
       headers: { "Set-Cookie": cookie_set },
