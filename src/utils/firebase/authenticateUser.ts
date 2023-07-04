@@ -1,6 +1,6 @@
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import SignMessage from "@/utils/web3/signMessage";
-import app from "@/utils/firebase";
+import app from "@/utils/firebase/firebase";
 
 export default async function authenticateUser(
   walletAddress: string,

@@ -6,20 +6,27 @@ import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 
 import connectWallet from "@/utils/web3/connectWallet";
 import sliceAddress from "@/utils/web3/sliceAddress";
-import authenticateUser from "@/utils/authenticateUser";
-import app from "@/utils/firebase";
+import authenticateUser from "@/utils/firebase/authenticateUser";
+import app from "@/utils/firebase/firebase";
 
 import Tooltip from "./base/tooltip";
-import Upload from "./upload";
 
-const Login = () => {
-  const [walletAddress, setWalletAddress] = useState<string | undefined>(
-    undefined
-  );
+type LoginProps = {
+  walletAddress: string | undefined;
+  isLoggedIn: boolean;
+  setIsLoggedIn: React.Dispatch<React.SetStateAction<boolean>>;
+  setWalletAddress: React.Dispatch<React.SetStateAction<string | undefined>>;
+};
+
+const Login = ({
+  walletAddress,
+  isLoggedIn,
+  setIsLoggedIn,
+  setWalletAddress,
+}: LoginProps) => {
   const [shortAddress, setShortAddress] = useState<string | undefined>(
     undefined
   );
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | undefined>(undefined);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>(
     undefined
   );
@@ -71,35 +78,26 @@ const Login = () => {
     return () => unsubscribe();
   }, [checkWallet]);
 
-  // useEffect(() => {
-  //   const handleRouteChange = () => {
-  //     setIsRedirected(true);
-  //   };
-
-  //     //   router.push("/dashboard/");
-  //     console.log(router);
-  //     //this needs pathname == dashboard (but really doesnt that change before it all loads)
-  //     // suspense maybe?
-  //     // router.events.on("routeChangeComplete", handleRouteChange);
-  //   }
-  //   return () => {
-  //     // router..off("routeChangeComplete", handleRouteChange);
-  //   };
-  // }, [router]);
-
   return (
-    <div className="flex w-full h-100 items-center">
-      <Tooltip tooltip={walletAddress ? "Logout" : "Connect"}>
+    <div className="flex items-center mx-4 flex-row items-center gap-0">
+      {/* {!isLoggedIn */}
+      {/* ? */}
+      {loadingMessage && (
+        <p className="text-blue-600 text-sm">{loadingMessage}</p>
+      )}
+      {/* : null} */}
+      <Tooltip tooltip={walletAddress ? "Disconnect" : "Metamask"}>
         <button
           className="rounded bg-blue-400 px-4 py-2 text-sm text-white shadow-sm"
           onClick={walletAddress ? () => logout() : () => checkWallet()}>
-          {walletAddress ? shortAddress : "Connect"}
+          {isLoggedIn ? "Logout" : walletAddress ? shortAddress : "Connect"}
         </button>
       </Tooltip>
-      {loadingMessage && <p className="text-blue-600">{loadingMessage}</p>}
-      {isLoggedIn && <Upload walletAddress={walletAddress} />}
     </div>
   );
 };
 
 export default Login;
+
+// issue is i need to be logged in to display the upload functionality
+// page structure now is
