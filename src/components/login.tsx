@@ -43,7 +43,7 @@ const Login = ({
         if (authenticate) {
           authenticateUser(walletAddress, setLoadingMessage);
         }
-        setLoadingMessage(`Welcome, ${newShortAddress}`);
+        setLoadingMessage(`Hello, ${newShortAddress}`);
       }
     },
     []
@@ -64,12 +64,11 @@ const Login = ({
   }, []);
 
   useEffect(() => {
-    const auth = getAuth(app);
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         localStorage.removeItem("loggedOut");
         checkWallet(true, false);
-        setLoadingMessage(`Welcome, ${shortAddress}`);
+        setLoadingMessage(`Hello, ${shortAddress}`);
         setIsLoggedIn(true);
       } else {
         console.log("not logged in");
@@ -80,12 +79,9 @@ const Login = ({
 
   return (
     <div className="flex items-center mx-4 flex-row items-center gap-0">
-      {/* {!isLoggedIn */}
-      {/* ? */}
       {loadingMessage && (
         <p className="text-blue-600 text-sm">{loadingMessage}</p>
       )}
-      {/* : null} */}
       <Tooltip tooltip={walletAddress ? "Disconnect" : "Metamask"}>
         <button
           className="rounded bg-blue-400 px-4 py-2 text-sm text-white shadow-sm"
@@ -98,6 +94,3 @@ const Login = ({
 };
 
 export default Login;
-
-// issue is i need to be logged in to display the upload functionality
-// page structure now is

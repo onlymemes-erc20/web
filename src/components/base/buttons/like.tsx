@@ -14,6 +14,7 @@ export const updateLikes = async (imageId: string) => {
     await updateDoc(imageRef, {
       likes: increment(1),
     });
+    console.log(`Updated likes for image ${imageId}`); // added debug log
     return { success: true, error: null };
   } catch (error) {
     console.error(error);

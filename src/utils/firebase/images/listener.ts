@@ -4,73 +4,49 @@ import {
   query,
   onSnapshot,
   orderBy,
-  startAfter,
   limit,
-  DocumentSnapshot,
-  DocumentData,
 } from "firebase/firestore";
 import { db } from "@/utils/firebase/firebase";
-import { FirestoreImageDoc, ImageDoc } from "@/utils/firebase/images/getImages";
+import { ImageDoc } from "@/utils/firebase/images/getImages";
 import { Dispatch, SetStateAction } from "react";
 
 type ImageListenerProps = {
-  lastDoc: DocumentSnapshot<DocumentData> | null;
   setUpdatedImages: Dispatch<SetStateAction<ImageDoc[]>>;
-  updatedImages: ImageDoc[];
+  imageLimit: number;
 };
-
 export const subscribeToImages = ({
-  lastDoc,
   setUpdatedImages,
-  updatedImages,
+  imageLimit,
 }: ImageListenerProps) => {
-  let latestImages = [...updatedImages];
-  let queryRef;
-
-  if (lastDoc) {
-    queryRef = query(
-      collection(db, "images"),
-      orderBy("createdAt", "desc"),
-      startAfter(lastDoc),
-      limit(12)
-    );
-  } else {
-    queryRef = query(
-      collection(db, "images"),
-      orderBy("createdAt", "desc"),
-      limit(12)
-    );
-  }
+  let queryRef = query(
+    collection(db, "images"),
+    orderBy("timestamp", "desc"),
+    limit(imageLimit)
+  );
 
   const unsubscribe = onSnapshot(
     queryRef,
     (snapshot) => {
-      let changes = false;
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const newImage = {
-            id: change.doc.id,
-            documentSnapshot: change.doc,
-            ...(change.doc.data() as FirestoreImageDoc),
-          };
-          latestImages = [newImage, ...latestImages];
-          changes = true;
-        } else if (change.type === "modified") {
-          const modifiedImage = {
-            id: change.doc.id,
-            documentSnapshot: change.doc,
-            ...(change.doc.data() as FirestoreImageDoc),
-          };
-          latestImages = latestImages.map((img) =>
-            img.id === modifiedImage.id ? modifiedImage : img
-          );
-          changes = true;
-        }
+      setUpdatedImages((prevImages) => {
+        let newImages = [...prevImages];
+        const existingIds = new Set(newImages.map((img) => img.id));
+
+        snapshot.docChanges().forEach((change) => {
+          const data = { id: change.doc.id, ...change.doc.data() } as ImageDoc;
+
+          if (change.type === "added" && !existingIds.has(data.id)) {
+            newImages.push(data);
+          } else if (change.type === "modified") {
+            newImages = newImages.map((img) =>
+              img.id === data.id ? data : img
+            );
+          }
+        });
+
+        newImages.sort((a, b) => b.timestamp - a.timestamp);
+
+        return newImages;
       });
-      if (changes) {
-        console.log("set new array", latestImages.length);
-        setUpdatedImages(latestImages);
-      }
     },
     (error) => {
       console.log("Error fetching snapshot: ", error);

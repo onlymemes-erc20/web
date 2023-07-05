@@ -5,7 +5,9 @@ import Image from "next/image";
 import Display from "@/components/display";
 import Login from "@/components/login";
 import Upload from "@/components/upload";
+
 type ProgressCallback = (progress: number) => void;
+
 export default function MemePage() {
   const [walletAddress, setWalletAddress] = useState<string | undefined>(
     undefined
@@ -35,11 +37,7 @@ export default function MemePage() {
         progressCallback={setProgress}
         progress={progress}
       />
-      <Display
-        isLoggedIn={isLoggedIn}
-        progress={progress}
-        walletAddress={walletAddress}
-      />
+      <Display isLoggedIn={isLoggedIn} walletAddress={walletAddress} />
     </div>
   );
 }
