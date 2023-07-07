@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import { ImageDoc, getLatestImages } from "@/utils/firebase/images/getImages";
 import { subscribeToImages } from "@/utils/firebase/images/listener";
 import { ImageComponent, ImageData } from "./image";
-import { filter } from "lodash";
 import { AuthContext } from "@/app/context/authContext";
 
 import { ToastContext } from "@/app/context/toastContext";
@@ -13,6 +12,12 @@ import { ToastContext } from "@/app/context/toastContext";
 type DisplayProps = {
   isLoggedIn: boolean;
   walletAddress: string | undefined;
+};
+
+const spring = {
+  type: "spring",
+  damping: 20,
+  stiffness: 200,
 };
 
 export default function Display({ isLoggedIn }: DisplayProps) {
@@ -47,10 +52,10 @@ export default function Display({ isLoggedIn }: DisplayProps) {
 
   useEffect(() => {
     const updateDisplayData = async () => {
-      // setIsLoading(true);
+      setIsLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 500));
       setDisplayData(realData);
-      // setIsLoading(false);
+      setIsLoading(false);
     };
 
     updateDisplayData();
@@ -101,10 +106,10 @@ export default function Display({ isLoggedIn }: DisplayProps) {
       </div>
       <motion.div
         className="grid grid-cols-4 gap-2 w-100 "
-        initial={{ opacity: 1 }}
-        animate={{ opacity: isLoading ? 0 : 1 }}
-        transition={{ duration: 0.4 }}>
-        {displayData.map((image, index) => (
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={spring}>
+        {displayData.map((image) => (
           <div className="flex" key={image.id}>
             <ImageComponent imageUrl={image.imageUrl} />
             <ImageData
@@ -125,3 +130,4 @@ export default function Display({ isLoggedIn }: DisplayProps) {
 //@todo tag images -> (suggest a tag?)
 //@todo sort by tags
 //@todo brainstorm some community participation incentives with lyle
+//@todo add load state for display *(isLoading && )
