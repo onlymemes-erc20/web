@@ -1,8 +1,10 @@
 "use client";
-import { useRef, useState } from "react";
+import { useRef, useContext, useEffect, useState } from "react";
 import { addImage } from "@/utils/firebase/images/addImage";
 import Tooltip from "./base/tooltip";
 import classNames from "classnames";
+import { ToastContext } from "@/app/context/toastContext";
+
 type ProgressCallback = (progress: number) => void;
 type UploadProps = {
   walletAddress: string | undefined;
@@ -29,6 +31,15 @@ export default function Upload({
     }
   };
 
+  const { showToast } = useContext(ToastContext);
+  const [toastTriggered, setToastTriggered] = useState(false);
+
+  useEffect(() => {
+    if (progress === 100 && showToast && !toastTriggered) {
+      showToast("Upload Complete");
+      setToastTriggered(true);
+    }
+  }, [progress, showToast, toastTriggered]);
   return (
     <div className="flex w-full justify-center h-40 items-center">
       <div className="m-12 w-50">

@@ -7,7 +7,6 @@ export async function GetCookie({ cookiename }) {
     const cookieStore = cookies();
     const token = cookieStore.get(cookiename);
     if (token?.value) {
-      // const decoded = verify(token.value, process.env.JWT_SECRET); //@todo cant verify this if its firebase. so we just send back cookie
       return new Response(token, { status: 200 });
     } else {
       return new Response("No Cookie", { status: 401 });

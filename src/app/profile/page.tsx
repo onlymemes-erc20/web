@@ -8,6 +8,4 @@ export default function Profile() {
   );
 }
 
-//@todo auth context.
 //@todo wallet balance revalidation
-//@todo
